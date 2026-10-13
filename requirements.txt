@@ -2,6 +2,6 @@ fastapi
 uvicorn[standard]
 prometheus-client
 pytest
-httpx
+httpx2
 ruff
 
