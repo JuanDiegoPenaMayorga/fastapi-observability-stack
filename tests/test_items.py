@@ -12,4 +12,6 @@ def test_item_get() -> None:
 
 
 def test_item_post() -> None:
-    response = client.post("/items", json={"name:"})
+    response = client.post("/items", json={"name": "Test Item", "price": 74.0}, )
+    assert response.status_code == 201
+    assert response.json() == {"name": "Test Item", "price": 74.0,"id": 1 }
