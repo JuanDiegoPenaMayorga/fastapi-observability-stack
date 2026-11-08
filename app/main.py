@@ -12,20 +12,25 @@ app = FastAPI(title="fastapi-observability-stack")
 # ---Metrics start---
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
     start = time.perf_counter()
-    response = await call_next(request)
-    elapsed = time.perf_counter() - start
+    code = "500"
+    try:
+        response = await call_next(request)
+        code = str(response.status_code)
+        return response
+    finally:
+        elapsed = time.perf_counter() - start
+        route = request.scope.get("route")
+        path = route.path if route else "no_route"
+        method = request.method
 
-    route = request.scope.get("route")
-    path = route.path if route else "no_route"
-    method = request.method
-    code = str(response.status_code)
-
-    REQUESTS.labels(method, path, code).inc()
-    LATENCY.labels(method, path).observe(elapsed)
-    if response.status_code >= 400:
-        ERRORS.labels(method, path, code).inc()
-    return response
+        REQUESTS.labels(method, path, code).inc()
+        LATENCY.labels(method, path).observe(elapsed)
+        if int(code) >= 400:
+            ERRORS.labels(method, path, code).inc()
 
 
 @app.get("/metrics")
