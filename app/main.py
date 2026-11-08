@@ -1,8 +1,39 @@
-from fastapi import FastAPI, HTTPException, status
+import time
 
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+from app.metrics import ERRORS, LATENCY, REQUESTS
 from app.schemas import Item, ItemCreate
 
 app = FastAPI(title="fastapi-observability-stack")
+
+
+# ---Metrics start---
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = time.perf_counter() - start
+
+    route = request.scope.get("route")
+    path = route.path if route else "no_route"
+    method = request.method
+    code = str(response.status_code)
+
+    REQUESTS.labels(method, path, code).inc()
+    LATENCY.labels(method, path).observe(elapsed)
+    if response.status_code >= 400:
+        ERRORS.labels(method, path, code).inc()
+    return response
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# ---Metrics end---
 
 _items: dict[int, Item] = {}
 _next_id = 1
