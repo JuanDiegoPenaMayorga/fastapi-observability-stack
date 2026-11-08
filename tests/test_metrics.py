@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from prometheus_client import REGISTRY
 
 from app.main import app
 
@@ -28,11 +29,14 @@ def test_metrics_error_count() -> None:
 
 
 def test_metrics_count_500() -> None:
+    labels = {"method": "GET", "path": "/boom", "status": "500"}
+    antes = REGISTRY.get_sample_value("http_errors_total", labels) or 0
+
     c = TestClient(app, raise_server_exceptions=False)
     assert c.get("/boom").status_code == 500
-    text = c.get("/metrics").text
-    assert 'http_errors_total{method="GET",path="/boom",status="500"}' in text
 
+    despues = REGISTRY.get_sample_value("http_errors_total", labels)
+    assert despues == antes + 1
 
 def test_metrics_not_self_counting() -> None:
     client.get("/metrics")
