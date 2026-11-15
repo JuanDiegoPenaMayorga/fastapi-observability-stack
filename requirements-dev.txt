@@ -1,4 +1,4 @@
--r requirements.txt
+-r requirements.lock.txt
 pytest
 httpx2
 ruff
