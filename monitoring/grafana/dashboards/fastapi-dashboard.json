@@ -85,12 +85,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (method, path, status) (rate(http_errors_total[$__rate_interval]))",
+          "expr": "sum by (method, path, status) (rate(http_errors_total[$__rate_interval])) > 0",
           "legendFormat": "Error {{status}} - {{method}} {{path}}"
         },
         {
           "refId": "B",
-          "expr": "vector(0) unless sum(rate(http_errors_total[$__rate_interval]))",
+          "expr": "vector(0) unless sum(rate(http_errors_total[$__rate_interval])) > 0",
           "legendFormat": "No errors (0)"
         }
       ]
