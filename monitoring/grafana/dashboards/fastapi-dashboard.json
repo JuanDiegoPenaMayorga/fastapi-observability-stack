@@ -4,7 +4,7 @@
   "tags": ["fastapi", "prometheus"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "5s",
   "time": {
     "from": "now-15m",
@@ -58,7 +58,23 @@
             "fixedColor": "red"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "No errors (0)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -69,15 +85,20 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (method, path, status) (rate(http_errors_total[$__rate_interval])) or vector(0)",
+          "expr": "sum by (method, path, status) (rate(http_errors_total[$__rate_interval]))",
           "legendFormat": "Error {{status}} - {{method}} {{path}}"
+        },
+        {
+          "refId": "B",
+          "expr": "vector(0) unless sum(rate(http_errors_total[$__rate_interval]))",
+          "legendFormat": "No errors (0)"
         }
       ]
     },
     {
       "id": 3,
       "type": "timeseries",
-      "title": "HTTP p95 Latency",
+      "title": "HTTP latency p95",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
