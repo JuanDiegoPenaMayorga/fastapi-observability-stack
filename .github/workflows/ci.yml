@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+      - name: Ejecutar pytest
+        run: pytest
+
+  validate-prometheus:
+    runs-on: ubuntu-latest
+    container:
+      image: prom/prometheus:v3.13.4
+      options: --entrypoint=""
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar reglas y ejecutar promtool test rules
+        run: |
+          promtool check rules monitoring/alert.rules.yml
+          promtool test rules monitoring/alert.rules.test.yml

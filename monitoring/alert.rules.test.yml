@@ -4,23 +4,29 @@ rule_files:
 evaluation_interval: 15s
 
 tests:
+  # Case 1: High traffic with ~2% 500 errors (below the 5% threshold) -> NO should alert
   - interval: 15s
     input_series:
-      - series: 'http_requests_total{method="GET",path="/items/999",status="404"}'
-        values: '0+10x4'
-      - series: 'http_errors_total{method="GET",path="/items/999",status="404"}'
-        values: '0+10x4'
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="200"}'
+        values: '0+49x4'
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0+1x4'
+      - series: 'http_errors_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0+1x4'
     alert_rule_test:
       - eval_time: 1m
         alertname: High5xxErrorRate
         exp_alerts: []
 
+  # Case 2: High traffic with 10% 500 errors (above the 5% threshold) -> SHOULD alert
   - interval: 15s
     input_series:
-      - series: 'http_requests_total{method="GET",path="/boom",status="500"}'
-        values: '0+10x4'
-      - series: 'http_errors_total{method="GET",path="/boom",status="500"}'
-        values: '0+10x4'
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="200"}'
+        values: '0+45x4'
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0+5x4'
+      - series: 'http_errors_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0+5x4'
     alert_rule_test:
       - eval_time: 1m
         alertname: High5xxErrorRate
@@ -28,5 +34,19 @@ tests:
           - exp_labels:
               severity: critical
             exp_annotations:
-              summary: "Alta tasa de errores HTTP 5xx (> 5%)"
-              description: "El porcentaje de errores 5xx supera el 5% en el último minuto (tasa actual: 100%)."
+              summary: "High 5xx Error Rate (> 5%)"
+              description: "The 5xx error rate exceeds 5% with active traffic (current rate: 10%)."
+
+  # Case 3: Low traffic with 50% error (1 failure of 2 requests in 1m) -> NO should alert for noise
+  - interval: 15s
+    input_series:
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="200"}'
+        values: '0 0 1 1 1'
+      - series: 'http_requests_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0 0 0 1 1'
+      - series: 'http_errors_total{method="GET",path="/items/{item_id}",status="500"}'
+        values: '0 0 0 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: High5xxErrorRate
+        exp_alerts: []
