@@ -1,0 +1,11 @@
+groups:
+  - name: fastapi_alerts
+    rules:
+      - alert: HTTPErrorsSpike
+        expr: sum(increase(http_errors_total[1m])) > 3
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP Errors Spike detected"
+          description: "The application has registered more than 3 HTTP errors in the last minute (current value: {{ $value }})."
