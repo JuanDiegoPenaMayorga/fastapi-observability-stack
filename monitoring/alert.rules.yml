@@ -1,11 +1,16 @@
 groups:
   - name: fastapi_alerts
     rules:
-      - alert: HTTPErrorsSpike
-        expr: sum(increase(http_errors_total[1m])) > 3
+      - alert: High5xxErrorRate
+        expr: |
+          (
+            sum(rate(http_errors_total{status=~"5.."}[1m]))
+            /
+            sum(rate(http_requests_total[1m]))
+          ) > 0.05
         for: 30s
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "HTTP Errors Spike detected"
-          description: "The application has registered more than 3 HTTP errors in the last minute (current value: {{ $value }})."
+          summary: "Alta tasa de errores HTTP 5xx (> 5%)"
+          description: "El porcentaje de errores 5xx supera el 5% en el último minuto (tasa actual: {{ $value | humanizePercentage }})."

@@ -1,0 +1,32 @@
+rule_files:
+  - alert.rules.yml
+
+evaluation_interval: 15s
+
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'http_requests_total{method="GET",path="/items/999",status="404"}'
+        values: '0+10x4'
+      - series: 'http_errors_total{method="GET",path="/items/999",status="404"}'
+        values: '0+10x4'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: High5xxErrorRate
+        exp_alerts: []
+
+  - interval: 15s
+    input_series:
+      - series: 'http_requests_total{method="GET",path="/boom",status="500"}'
+        values: '0+10x4'
+      - series: 'http_errors_total{method="GET",path="/boom",status="500"}'
+        values: '0+10x4'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: High5xxErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Alta tasa de errores HTTP 5xx (> 5%)"
+              description: "El porcentaje de errores 5xx supera el 5% en el último minuto (tasa actual: 100%)."
