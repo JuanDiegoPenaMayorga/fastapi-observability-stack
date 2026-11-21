@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.lock.txt
+            requirements-dev.txt
+      - name: Instalar dependencias fijadas
+        run: |
+          pip install -r requirements.lock.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+      - name: Ejecutar pytest
+        run: pytest
+
+  validate-prometheus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validar configuración y reglas con promtool
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            --entrypoint promtool \
+            prom/prometheus:v3.13.4 \
+            check config monitoring/prometheus.yml
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            --entrypoint promtool \
+            prom/prometheus:v3.13.4 \
+            test rules monitoring/alert.rules.test.yml
