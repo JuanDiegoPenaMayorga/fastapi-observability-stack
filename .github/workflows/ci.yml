@@ -22,14 +22,16 @@ jobs:
         run: |
           pip install -r requirements.lock.txt
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-      - name: Ejecutar pytest
+      - name: Lint with Ruff
+        run: ruff check .
+      - name: Execute pytest
         run: pytest
 
   validate-prometheus:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Validar configuración y reglas con promtool
+      - name: Validate configuration and rules with promtool
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
@@ -43,3 +45,12 @@ jobs:
             --entrypoint promtool \
             prom/prometheus:v3.13.4 \
             test rules monitoring/alert.rules.test.yml
+
+  validate-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate Compose and build image
+        run: |
+          docker compose config -q
+          docker build -t fastapi-observability-stack:ci .
